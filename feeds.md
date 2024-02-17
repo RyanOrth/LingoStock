@@ -1,4 +1,4 @@
-# feeds
+# Feeds
 
 ## Nasdaq
 
