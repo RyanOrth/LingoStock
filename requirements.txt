@@ -1,3 +1,6 @@
+chromadb
 langchain
+langchainhub
 langchain-cli
+langchain_openai
 python-dotenv
