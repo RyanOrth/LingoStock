@@ -4,3 +4,6 @@ langchainhub
 langchain-cli
 langchain_openai
 python-dotenv
+feedparser
+newspaper3k
+listparser
