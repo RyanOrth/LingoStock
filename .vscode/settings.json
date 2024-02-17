@@ -1,7 +1,11 @@
 {
 	"cSpell.words": [
 		"dotenv",
+		"hwchase",
 		"LANGCHAIN",
-		"TAVILY"
+		"networkx",
+		"newsloader",
+		"TAVILY",
+		"vectorstores"
 	]
 }
