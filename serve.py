@@ -14,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-from AgentRSSFeedLoader import AgentRSSFeedLoader
+from CachingRSSFeedLoader import CachingRSSFeedLoader
 
 def main():
     load_dotenv()
@@ -29,7 +29,7 @@ def main():
     with open("rss_urls.txt") as f:
         urls = f.readlines()
     
-    loader = AgentRSSFeedLoader(urls=urls, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+    loader = CachingRSSFeedLoader(cache_dir="./cache", urls=urls, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     docs = loader.load()
     filtered_docs = filter_complex_metadata(docs)
     documents = RecursiveCharacterTextSplitter(
