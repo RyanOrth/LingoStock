@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-from langchain_community.docstore import InMemoryDocstore
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_experimental.autonomous_agents import BabyAGI
@@ -15,7 +14,7 @@ embeddings = OpenAIEmbeddings()
 vectorstore = Chroma("langchain_agi_store", embeddings)
 
 planning_prompt = PromptTemplate.from_template("You are a planner who is an expert at coming up with a todo list for a given objective. Come up with a todo list for this objective: {objective}")
-planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0), prompt=planning_prompt)
+planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-4", temperature=0), prompt=planning_prompt)
 
 tools = [
     TavilySearchResults(max_results=1),
@@ -40,9 +39,7 @@ llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 llm_chain = LLMChain(llm=llm, prompt=prompt)
 tool_names = [tool.name for tool in tools]
 agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
-agent_executor = AgentExecutor.from_agent_and_tools(
-    agent=agent, tools=tools, verbose=True
-)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
 OBJECTIVE = "Write a weather report for SF today"
 
