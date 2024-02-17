@@ -7,11 +7,14 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain.tools.retriever import create_retriever_tool
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import WebBaseLoader
+# from langchain_community.document_loaders import RSSFeedLoader
 from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+
+from AgentRSSFeedLoader import AgentRSSFeedLoader
 
 def main():
     load_dotenv()
@@ -23,11 +26,15 @@ def main():
     search = TavilySearchResults()
     # search.invoke("what is the weather in Lincoln")
 
-    loader = WebBaseLoader("https://python.langchain.com/docs/get_started/introduction")
+    with open("rss_urls.txt") as f:
+        urls = f.readlines()
+    
+    loader = AgentRSSFeedLoader(urls=urls, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     docs = loader.load()
+    filtered_docs = filter_complex_metadata(docs)
     documents = RecursiveCharacterTextSplitter(
         chunk_size=1000, chunk_overlap=200
-    ).split_documents(docs)
+    ).split_documents(filtered_docs)
     vector = Chroma.from_documents(documents, OpenAIEmbeddings())
     retriever = vector.as_retriever()
 
@@ -60,7 +67,7 @@ def main():
     )
 
     agent_with_chat_history.invoke(
-        {"input": "What is the weather today in Lincoln?"},
+        {"input": "What are some interesting AI companies?"},
         config={"configurable": {"session_id": "<foo>"}}
     )
 
