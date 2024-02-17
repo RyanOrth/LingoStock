@@ -1,8 +1,9 @@
+from datetime import datetime
 import os
 import json
 import feedparser
 import logging
-from datetime import datetime
+from hashlib import sha256
 from typing import Any, Iterator, Optional, Sequence
 
 from langchain_core.documents import Document
@@ -33,8 +34,9 @@ class CachingRSSFeedLoader(RSSFeedLoader):
             os.makedirs(self.cache_dir)
 
     def _get_cache_file_path(self, article_url: str) -> str:
-        # Hash the article URL to create a unique filename
-        filename = f"{hash(article_url)}.json"
+        encoded_url = article_url.encode('utf-8')
+        hash_digest = sha256(encoded_url).hexdigest()
+        filename = f"{hash_digest}.json"
         return os.path.join(self.cache_dir, filename)
 
     def _is_article_cached(self, article_url: str) -> bool:
@@ -45,13 +47,14 @@ class CachingRSSFeedLoader(RSSFeedLoader):
         cache_file = self._get_cache_file_path(article_url)
         with open(cache_file, 'r') as f:
             data = json.load(f)
-            document = Document(content=data['content'], metadata=data['metadata'])
+            document = Document(page_content=data['page_content'])
+            document.metadata = data['metadata']
         return document
 
     def _cache_article(self, article_url: str, article: Document):
         cache_file = self._get_cache_file_path(article_url)
         with open(cache_file, 'w') as f:
-            data = {'content': article.content, 'metadata': article.metadata}
+            data = {'page_content': article.page_content, 'metadata': article.metadata}
             json.dump(data, f)
 
     def lazy_load(self) -> Iterator[Document]:
@@ -70,7 +73,7 @@ class CachingRSSFeedLoader(RSSFeedLoader):
                         loader = NewsURLLoader(urls=[entry.link], **self.newsloader_kwargs)
                         article = loader.load()[0]
                         article.metadata["feed"] = url
-                        article.metadata["published"] = datetime(*entry.published_parsed[:6]).strftime('%Y-%m-%d %H:%M:%S')
+                        article.metadata["publish_date"] = datetime(*entry.published_parsed[:6]).strftime('%Y-%m-%d %H:%M:%S') if article.metadata["publish_date"]==None else article.metadata["publish_date"].strftime('%Y-%m-%d %H:%M:%S')
                         self._cache_article(entry.link, article)
                         yield article
                     except Exception as e:
