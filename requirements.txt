@@ -1,3 +1,6 @@
 langchain
 langchain-cli
 python-dotenv
+feedparser
+newspaper3k
+listparser
