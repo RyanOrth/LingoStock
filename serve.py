@@ -27,6 +27,7 @@ def main():
     docs = loader.load()
     documents = RecursiveCharacterTextSplitter(
         chunk_size=1000, chunk_overlap=200
+        
     ).split_documents(docs)
     vector = Chroma.from_documents(documents, OpenAIEmbeddings())
     retriever = vector.as_retriever()
@@ -35,7 +36,7 @@ def main():
     retriever_tool = create_retriever_tool(
         retriever,
         "langchain_search",
-        "Search for information about LangChain. For any quesitons about LangChain, you must use this tool!"
+        "Search for information about LangChain. For any questions about LangChain, you must use this tool!"
     )
 
     tools = [search, retriever_tool]
