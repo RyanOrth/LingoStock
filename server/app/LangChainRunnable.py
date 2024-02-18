@@ -1,4 +1,5 @@
-from langchain_core.runnables import Runnable
+from typing import Optional
+from langchain_core.runnables import Runnable, RunnableConfig
 import os
 from dotenv import load_dotenv
 
@@ -14,7 +15,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-from CachingRSSFeedLoader import CachingRSSFeedLoader
+from app.CachingRSSFeedLoader import CachingRSSFeedLoader
 
 class LangChainRunnable(Runnable):
     def __init__(self):
@@ -28,10 +29,10 @@ class LangChainRunnable(Runnable):
         search = TavilySearchResults()
         # search.invoke("what is the weather in Lincoln")
 
-        with open("rss_urls.txt") as f:
+        with open("./app/rss_urls.txt") as f:
             urls = f.readlines()
         
-        loader = CachingRSSFeedLoader(cache_dir="./.cache", urls=urls, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         docs = loader.load()
         filtered_docs = filter_complex_metadata(docs)
         documents = RecursiveCharacterTextSplitter(
@@ -69,19 +70,22 @@ class LangChainRunnable(Runnable):
             history_messages_key="chat_history",
         )
 
-    def invoke(self, input_data: dict) -> dict:
+    def invoke(self, input_data: dict, config: Optional[RunnableConfig] = None) -> str:
         # Your main logic here, using input_data as needed
         # For example, you might want to process a question and return an answer
         # This is a simplified example; adjust according to your actual logic
         question = input_data.get("question", "")
-        answer = self.process_question(question)
-        return {"answer": answer}
+        print(input_data)
+        print(config)
+        answer = self.process_question(question, config=config)
+        return answer
 
-    def process_question(self, question: str) -> str:
+    def process_question(self, question: str, config: Optional[RunnableConfig] = None) -> str:
         # Implement your processing logic here
         # This should return a string that is the answer to the given question
+        config["configurable"] = {"session_id": "<foo>"}
         output = self.agent_with_chat_history.invoke(
             {"input": question},
-            config={"configurable": {"session_id": "<foo>"}}
+            config=config
         )
         return output["output"]

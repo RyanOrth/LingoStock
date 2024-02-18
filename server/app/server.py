@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from langserve import add_routes
 
-from server.app.LangChainRunnable import LangChainRunnable
+from app.LangChainRunnable import LangChainRunnable
 
 app = FastAPI()
 
@@ -12,7 +12,6 @@ async def redirect_root_to_docs():
     return RedirectResponse("/docs")
 
 
-# Edit this to add the chain you want to add
 langchain_runnable = LangChainRunnable()
 add_routes(app, langchain_runnable, path="/langchain")
 

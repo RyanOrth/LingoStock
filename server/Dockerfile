@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-bookworm
 
 RUN pip install poetry==1.6.1
 
@@ -14,7 +14,7 @@ RUN poetry install  --no-interaction --no-ansi --no-root
 
 COPY ./app ./app
 
-RUN poetry install --no-interaction --no-ansi
+RUN poetry install --no-interaction --no-ansi -vvv
 
 EXPOSE 8080
 

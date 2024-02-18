@@ -14,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-from CachingRSSFeedLoader import CachingRSSFeedLoader
+from server.app.CachingRSSFeedLoader import CachingRSSFeedLoader
 
 def main():
     load_dotenv()
