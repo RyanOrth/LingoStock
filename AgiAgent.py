@@ -4,9 +4,11 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_experimental.autonomous_agents import BabyAGI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
+from langchain.agents import AgentExecutor, Tool, ZeroShotAgent, create_react_agent
 from langchain_community.tools.tavily_search import TavilySearchResults
 from typing import Optional
+
+from pprint import pprint
 
 load_dotenv()
 
@@ -36,12 +38,15 @@ prompt = ZeroShotAgent.create_prompt(
 )
 
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+# # llm_chain = LLMChain(llm=llm, prompt=prompt)
+# tool_names = [tool.name for tool in tools]
+# agent = create_react_agent(llm=llm, tools=tool_names, prompt=prompt)
 llm_chain = LLMChain(llm=llm, prompt=prompt)
 tool_names = [tool.name for tool in tools]
 agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-OBJECTIVE = "Write a weather report for SF today"
+OBJECTIVE = "Write a weather report for Lincoln today"
 
 # Logging of LLMChains
 verbose = False
@@ -55,4 +60,23 @@ baby_agi = BabyAGI.from_llm(
     max_iterations=max_iterations,
 )
 
-baby_agi.invoke({"objective": OBJECTIVE})
+result = baby_agi.invoke({"objective": OBJECTIVE})
+
+# print(baby_agi.results)
+vector_store = baby_agi.vectorstore
+vector_store
+print(baby_agi.task_list)
+print('\n\n\n')
+print(baby_agi.task_creation_chain)
+print('\n\n\n')
+print(baby_agi.tags)
+print('\n\n\n')
+pprint(baby_agi.to_json())
+# pprint(vars(baby_agi.execution_chain))
+# print('\n\n\n\n')
+# pprint(vars(baby_agi))
+# print(result)
+# for result in baby_agi.({"objective": OBJECTIVE}):
+#     print(result)
+
+# print(baby_agi.task_list)
