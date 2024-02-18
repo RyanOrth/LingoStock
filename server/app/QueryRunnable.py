@@ -27,7 +27,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
-class LangChainRunnable(BaseChatModel):
+class QueryRunnable(BaseChatModel):
     langchain_key: str = Field(default_factory=lambda: os.getenv("LANGCHAIN_API_KEY"))
     openai_key: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     tavily_key: str = Field(default_factory=lambda: os.getenv("TAVILY_API_KEY"))

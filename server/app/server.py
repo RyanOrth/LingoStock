@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from langserve import add_routes
 from dotenv import load_dotenv
 
-from app.LangChainRunnable import LangChainRunnable
+from app.QueryRunnable import QueryRunnable
 
 load_dotenv()
 
@@ -15,8 +15,8 @@ async def redirect_root_to_docs():
     return RedirectResponse("/docs")
 
 
-langchain_runnable = LangChainRunnable()
-add_routes(app, langchain_runnable, path="/langchain")
+langchain_runnable = QueryRunnable()
+add_routes(app, langchain_runnable, path="/query")
 
 if __name__ == "__main__":
     import uvicorn
