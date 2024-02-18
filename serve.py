@@ -60,18 +60,15 @@ def main():
 
     agent_with_chat_history = RunnableWithMessageHistory(
         agent_executor,
-        # This is needed because in most real world scenarios, a session id is needed
-        # It isn't really used here because we are using a simple in memory ChatMessageHistory
         lambda session_id: message_history,
         input_messages_key="input",
         history_messages_key="chat_history",
     )
 
-    agent_with_chat_history.invoke(
+    output = agent_with_chat_history.invoke(
         {"input": "What are some interesting AI companies?"},
         config={"configurable": {"session_id": "<foo>"}}
     )
-
 
 
 if __name__ == '__main__':
