@@ -21,3 +21,7 @@
 - [College Investor](https://thecollegeinvestor.com/feed/) - The College Investor
 - [Top US News](https://www.cnbc.com/id/100003114/device/rss/rss.html) - Top US News
 - [yahoo](https://finance.yahoo.com/news/rssindex) - Yahoo Finance
+
+## Fast New
+
+- [qtrader](https://www.nasdaqtrader.com/Trader.aspx?id=NewsRSS)

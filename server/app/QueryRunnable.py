@@ -69,19 +69,19 @@ class QueryRunnable(BaseChatModel):
         search = TavilySearchResults()
 
         loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, opml=opml, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        print(loader._get_urls())
         docs = loader.load()
         filtered_docs = filter_complex_metadata(docs)
         documents = RecursiveCharacterTextSplitter(
             chunk_size=1000, chunk_overlap=200
         ).split_documents(filtered_docs)
-        
         vector = Chroma.from_documents(documents, OpenAIEmbeddings())
         retriever = vector.as_retriever()
 
         retriever_tool = create_retriever_tool(
             retriever,
             "rss_retriever",
-            "Scour different rss feeds for information",
+            "Look up information in provided rss feeds. You can only use the available feeds.\nAvailable rss feeds: " + ", ".join(urls) if not opml else opml,
         )
 
         tools = [ retriever_tool]
@@ -90,7 +90,7 @@ class QueryRunnable(BaseChatModel):
         prompt = hub.pull("hwchase17/openai-functions-agent")
 
         agent = create_openai_functions_agent(llm, tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
         agent_with_chat_history = RunnableWithMessageHistory(
             agent_executor,
@@ -110,7 +110,6 @@ class QueryRunnable(BaseChatModel):
         return agent
 
     def process_question(self, messages: List[BaseMessage], config: Optional[RunnableConfig] = {"configurable":{"session_id":"<foo>"}}) -> str:
-        agent = self.agent_with_chat_history
         len_req = 1
         if isinstance(messages[0], SystemMessage):
             if "rss" in messages[0].content.splitlines()[0].lower():
@@ -119,6 +118,9 @@ class QueryRunnable(BaseChatModel):
                     and "<opml version=" in messages[0].content.splitlines()[1]:
                 agent = self.new_rss_system(messages, is_opml=True)
             len_req = 2
+        else:
+            agent = self.agent_with_chat_history
+
         if len(messages) > len_req:
             history = get_session_history(config["configurable"]["session_id"])
             history.add_messages(messages[:-1] if len_req == 1 else messages[1:-1])
