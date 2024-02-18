@@ -1,0 +1,13 @@
+https://www.nasdaq.com/feed/rssoutbound
+https://www.nasdaq.com/feed/rssoutbound?symbol=MSFT
+https://www.nasdaq.com/feed/nasdaq-original/rss.xml
+https://www.nasdaq.com/feed/rssoutbound?category=ETFs
+https://www.nasdaq.com/feed/rssoutbound?category=Artificial-Intelligence
+https://www.marketbeat.com/rss-feeds/
+https://www.marketbeat.com/rss.ashx?type=headlines
+https://www.marketbeat.com/rss.ashx?type=originals
+https://www.marketbeat.com/rss.ashx?type=instant-alerts
+https://www.investing.com/rss/news.rss
+https://thecollegeinvestor.com/feed/
+https://www.cnbc.com/id/100003114/device/rss/rss.html
+https://finance.yahoo.com/news/rssindex

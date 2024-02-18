@@ -8,3 +8,4 @@ python-dotenv
 feedparser
 newspaper3k
 listparser
+langserve[all]
