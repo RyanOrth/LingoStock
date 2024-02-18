@@ -87,7 +87,7 @@ class QueryRunnable(BaseChatModel):
             "Look up information in provided rss feeds. You can only use the available feeds.\nAvailable rss feeds: " + ", ".join(urls) if urls else "No rss feeds available",
         )
 
-        tools = [ retriever_tool]
+        tools = [search, retriever_tool]
 
         llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, streaming=True)
         prompt = hub.pull("hwchase17/openai-functions-agent")
