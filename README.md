@@ -36,13 +36,30 @@ LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
 LANGCHAIN_PROJECT="LingoStock"
 ```
 
+## Running the Project
+
 Run the following command in the `server` directory to build the project's API.
 
 ```
 docker compose up
 ```
 
+It can be accessed from the `local:8080` port. View the two API playgrounds using `local:8080/agi/playground` or `local:8080/query/playground`.
+
+## AGI Script Testing
+
+To test the AGI Agent without fully building the API, manually adjust the prompt in `AgiAgent.py` and run the following command:
+
+```
+python AgiAgent.py
+```
+
+This will allow you to see the agent's thought process when executing tasks.
 
 # API Documentation
 
 With FastAPI, our api endpoints are documented and allow users to test out the system.
+
+# Examples
+
+To understand the LLM Agent's thought process when completing an objective, see the following [Example AGI Agent Query](ExampleQueryAGI.md).

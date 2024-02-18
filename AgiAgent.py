@@ -7,23 +7,26 @@ from langchain.chains import LLMChain
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
 from langchain_community.tools.tavily_search import TavilySearchResults
 from typing import Optional
+from server.app.Tools import Toolkit
 
 load_dotenv()
 
 embeddings = OpenAIEmbeddings()
 vectorstore = Chroma("langchain_agi_store", embeddings)
 
-planning_prompt = PromptTemplate.from_template("You are a planner who is an expert at coming up with a todo list for a given objective. Come up with a todo list for this objective: {objective}")
-planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-4", temperature=0), prompt=planning_prompt)
+# planning_prompt = PromptTemplate.from_template("You are a planner who is an expert at coming up with a todo list for a given objective. Come up with a todo list for this objective: {objective}")
+# planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-4", temperature=0), prompt=planning_prompt)
 
-tools = [
-    TavilySearchResults(max_results=1),
-    Tool(
-        name="Planning",
-        func=planning_chain.run,
-        description="useful for when you need to come up with todo lists. Input: an objective to create a todo list for. Output: a todo list for that objective. Please be very clear what the objective is!",
-    )
-]
+# tools = [
+#     TavilySearchResults(max_results=1),
+#     Tool(
+#         name="Planning",
+#         func=planning_chain.run,
+#         description="useful for when you need to come up with todo lists. Input: an objective to create a todo list for. Output: a todo list for that objective. Please be very clear what the objective is!",
+#     )
+# ]
+toolkit = Toolkit()
+tools = toolkit.get_tools()
 
 prefix = """You are an AI who performs one task based on the following objective: {objective}. Take into account these previously completed tasks: {context}."""
 suffix = """Question: {task}
@@ -39,14 +42,14 @@ llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 llm_chain = LLMChain(llm=llm, prompt=prompt)
 tool_names = [tool.name for tool in tools]
 agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
-OBJECTIVE = "Write a weather report for SF today"
+OBJECTIVE = "Give me a list of countries with the highest GDP grouped by continent"
 
 # Logging of LLMChains
 verbose = False
 # If None, will keep on going forever
-max_iterations: Optional[int] = 3
+max_iterations: Optional[int] = 8
 baby_agi = BabyAGI.from_llm(
     llm=llm,
     vectorstore=vectorstore,
