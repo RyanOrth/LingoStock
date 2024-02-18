@@ -2,6 +2,8 @@ https://www.nasdaq.com/feed/rssoutbound
 https://www.nasdaq.com/feed/rssoutbound?symbol=MSFT
 https://www.nasdaq.com/feed/nasdaq-original/rss.xml
 https://www.nasdaq.com/feed/rssoutbound?category=ETFs
+https://www.nasdaq.com/feed/rssoutbound?category=IPOs
+https://www.nasdaq.com/feed/rssoutbound?category=Markets
 https://www.nasdaq.com/feed/rssoutbound?category=Artificial-Intelligence
 https://www.marketbeat.com/rss-feeds/
 https://www.marketbeat.com/rss.ashx?type=headlines
@@ -11,3 +13,10 @@ https://www.investing.com/rss/news.rss
 https://thecollegeinvestor.com/feed/
 https://www.cnbc.com/id/100003114/device/rss/rss.html
 https://finance.yahoo.com/news/rssindex
+https://www.nasdaqtrader.com/rss.aspx?feed=currentheadlines
+https://www.spglobal.com/spdji/en/rss/rss-details/?rssFeedName=all-indices
+https://www.spglobal.com/spdji/en/rss/rss-details/?rssFeedName=methodologies
+https://www.spglobal.com/spdji/en/rss/rss-details/?rssFeedName=research
+https://www.spglobal.com/spdji/en/rss/rss-details/?rssFeedName=market-commentary
+https://www.spglobal.com/spdji/en/rss/rss-details/?rssFeedName=performance-reports
+https://www.spglobal.com/spdji/en/rss/rss-details/?rssFeedName=index-news-announcements

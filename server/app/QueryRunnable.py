@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Tuple
 from langchain_core.runnables import Runnable, RunnableConfig
 import os
+import listparser
 
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain import hub
@@ -69,8 +70,10 @@ class QueryRunnable(BaseChatModel):
         search = TavilySearchResults()
 
         loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, opml=opml, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-        print(loader._get_urls())
         docs = loader.load()
+        if opml:
+            rss = listparser.parse(opml)
+            urls = [feed.url for feed in rss.feeds]
         filtered_docs = filter_complex_metadata(docs)
         documents = RecursiveCharacterTextSplitter(
             chunk_size=1000, chunk_overlap=200
@@ -81,7 +84,7 @@ class QueryRunnable(BaseChatModel):
         retriever_tool = create_retriever_tool(
             retriever,
             "rss_retriever",
-            "Look up information in provided rss feeds. You can only use the available feeds.\nAvailable rss feeds: " + ", ".join(urls) if not opml else opml,
+            "Look up information in provided rss feeds. You can only use the available feeds.\nAvailable rss feeds: " + ", ".join(urls) if urls else "No rss feeds available",
         )
 
         tools = [ retriever_tool]

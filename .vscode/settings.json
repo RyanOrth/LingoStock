@@ -5,6 +5,7 @@
         "hwchase",
         "LANGCHAIN",
         "langserve",
+        "listparser",
         "networkx",
         "newsloader",
         "pydantic",
