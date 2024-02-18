@@ -1,5 +1,6 @@
 chromadb
 langchain
+langchain_experimental
 langchainhub
 langchain-cli
 langchain_openai
