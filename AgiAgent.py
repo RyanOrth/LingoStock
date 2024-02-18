@@ -56,3 +56,10 @@ baby_agi = BabyAGI.from_llm(
 )
 
 baby_agi.invoke({"objective": OBJECTIVE})
+
+retriever = baby_agi.vectorstore.as_retriever()
+result = retriever.get_relevant_documents("result")
+
+print('\n\n\n')
+for doc in result:
+    print(doc.page_content)

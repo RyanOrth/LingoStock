@@ -1,8 +1,19 @@
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import chain
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from typing import Optional
+
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
+from langchain_experimental.autonomous_agents import BabyAGI
+from langchain_community.tools.tavily_search import TavilySearchResults
+
 from typing import Any, List, Optional, Tuple
-from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable, RunnableConfig, RunnableParallel, RunnablePassthrough
 import os
 
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain import hub
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, SystemMessage
 from langchain.agents import AgentExecutor, create_openai_functions_agent, create_openai_tools_agent
@@ -10,7 +21,6 @@ from langchain.tools.retriever import create_retriever_tool
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores.utils import filter_complex_metadata
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -27,12 +37,12 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
-class LangChainRunnable(BaseChatModel):
+class AgiRunnable(BaseChatModel):
     langchain_key: str = Field(default_factory=lambda: os.getenv("LANGCHAIN_API_KEY"))
     openai_key: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     tavily_key: str = Field(default_factory=lambda: os.getenv("TAVILY_API_KEY"))
 
-    agent_executor: Optional[AgentExecutor] = None
+    agi_agent: Optional[Runnable] = None
     agent_with_chat_history: Optional[RunnableWithMessageHistory] = None
     message_history: Optional[ChatMessageHistory] = None
 
@@ -50,9 +60,9 @@ class LangChainRunnable(BaseChatModel):
     @property
     def input_schema(self, config: Optional[RunnableConfig]) -> dict:
         return {
-            "question": {
+            "objective": {
                 "type": "string",
-                "description": "The question to be answered"
+                "description": "The objective to be completed"
             }
         }
     
@@ -61,13 +71,12 @@ class LangChainRunnable(BaseChatModel):
         return {
             "answer": {
                 "type": "string",
-                "description": "The answer to the given question"
+                "description": "The result of the given objective"
             }
         }
     
     def create_agent(self, urls: List[str], opml: str = None) -> RunnableWithMessageHistory:
-        search = TavilySearchResults()
-
+        # Retriever tool
         loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, opml=opml, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         docs = loader.load()
         filtered_docs = filter_complex_metadata(docs)
@@ -84,22 +93,78 @@ class LangChainRunnable(BaseChatModel):
             "Scour different rss feeds for information",
         )
 
-        tools = [ retriever_tool]
+        # Planning tool
+        planning_prompt = PromptTemplate.from_template("You are a planner who is an expert at coming up with a todo list for a given objective. Come up with a todo list for this objective: {objective}")
+        planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-4", temperature=0), prompt=planning_prompt)
 
-        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, streaming=True)
-        prompt = hub.pull("hwchase17/openai-functions-agent")
+        planning_tool = Tool(
+            name="Planning",
+            func=planning_chain.run,
+            description="useful for when you need to come up with todo lists. Input: an objective to create a todo list for. Output: a todo list for that objective. Please be very clear what the objective is!",
+        )
+        
+        # Tool Collection
+        tools = [
+            TavilySearchResults(max_results=1),
+            retriever_tool,
+            planning_tool
+        ]
 
-        agent = create_openai_functions_agent(llm, tools, prompt)
+        prefix = """You are an AI who performs one task based on the following objective: {objective}. Take into account these previously completed tasks: {context}."""
+        suffix = """Question: {task}
+        {agent_scratchpad}"""
+        prompt = ZeroShotAgent.create_prompt(
+            tools,
+            prefix=prefix,
+            suffix=suffix,
+            input_variables=["objective", "task", "context", "agent_scratchpad"],
+        )
+
+        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+        llm_chain = LLMChain(llm=llm, prompt=prompt)
+        tool_names = [tool.name for tool in tools]
+        agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
         agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
+        agi_memory_vstore = Chroma("langchain_agi_store", OpenAIEmbeddings())
+
+        # Logging of LLMChains
+        verbose = False
+        # If None, will keep on going forever
+        max_iterations: Optional[int] = 3
+        self.agi_agent = BabyAGI.from_llm(
+            llm=llm,
+            vectorstore=agi_memory_vstore,
+            task_execution_chain=agent_executor,
+            verbose=verbose,
+            max_iterations=max_iterations,
+        )
+
+        # runnable = RunnableParallel(
+        #     passed=RunnablePassthrough(),
+        #     extra=RunnablePassthrough.assign(agi_agent=agi_agent)
+        # )
+        
         agent_with_chat_history = RunnableWithMessageHistory(
-            agent_executor,
+            self.BabyAgiRunnable,
             get_session_history,
-            input_messages_key="input",
+            input_messages_key="objective",
             history_messages_key="chat_history",
         )
         return agent_with_chat_history
-    
+
+    @chain
+    def BabyAgiRunnable(fields):
+        objective = fields["objective"]
+        agi_agent = fields["agi_agent"]
+        
+        agi_agent.invoke(objective)
+        retriever = agi_agent.vectorstore.as_retriever()
+        result = retriever.get_relevant_documents("result")
+        for doc in result:
+            print('Final Docs:', doc.page_content)
+        return result[-1].page_content
+
     def new_rss_system(self, messages: List[BaseMessage], is_opml: bool = False) -> RunnableWithMessageHistory:
         if is_opml:
             rss_feeds = messages[0].content
@@ -109,7 +174,7 @@ class LangChainRunnable(BaseChatModel):
             agent = self.create_agent(rss_feeds)
         return agent
 
-    def process_question(self, messages: List[BaseMessage], config: Optional[RunnableConfig] = {"configurable":{"session_id":"<foo>"}}) -> str:
+    def process_objective(self, messages: List[BaseMessage], config: Optional[RunnableConfig] = {"configurable":{"session_id":"<foo>"}}) -> str:
         agent = self.agent_with_chat_history
         len_req = 1
         if isinstance(messages[0], SystemMessage):
@@ -124,10 +189,14 @@ class LangChainRunnable(BaseChatModel):
             history.add_messages(messages[:-1] if len_req == 1 else messages[1:-1])
             print("History: ", history.messages)
         output = agent.invoke(
-            {"input": messages[-1].content},
+            {
+                "objective": {"objective": messages[-1].content},
+                "agi_agent": self.agi_agent
+            },
             config=config
         )
-        return output["output"]
+        # return output["output"]
+        return output
 
     def _generate(
         self,
@@ -136,7 +205,7 @@ class LangChainRunnable(BaseChatModel):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> ChatResult:
-        response_content = self.process_question(messages, config={"configurable":{"session_id":run_manager.run_id}})
+        response_content = self.process_objective(messages, config={"configurable":{"session_id":run_manager.run_id}})
         response_message = AIMessage(content=response_content)
         return ChatResult(generations=[ChatGeneration(message=response_message)])
 
