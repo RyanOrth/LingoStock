@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from langserve import add_routes
+from dotenv import load_dotenv
 
 from app.LangChainRunnable import LangChainRunnable
+
+load_dotenv()
 
 app = FastAPI()
 

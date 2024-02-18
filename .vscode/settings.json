@@ -1,16 +1,17 @@
 {
-	"cSpell.words": [
-		"dotenv",
-		"fastapi",
-		"hwchase",
-		"LANGCHAIN",
-		"langserve",
-		"networkx",
-		"newsloader",
-		"TAVILY",
-		"uvicorn",
-		"vectorstores"
-	],
-	"editor.tabSize": "4",
-	"editor.insertSpaces": true
+    "cSpell.words": [
+        "dotenv",
+        "fastapi",
+        "hwchase",
+        "LANGCHAIN",
+        "langserve",
+        "networkx",
+        "newsloader",
+        "pydantic",
+        "TAVILY",
+        "uvicorn",
+        "vectorstores"
+    ],
+    "editor.tabSize": "4",
+    "editor.insertSpaces": true
 }
