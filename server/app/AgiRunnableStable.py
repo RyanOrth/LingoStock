@@ -11,7 +11,7 @@ from langchain_experimental.autonomous_agents import BabyAGI
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from typing import Any, List, Optional, Tuple
-from langchain_core.runnables import Runnable, RunnableConfig, RunnableParallel, RunnablePassthrough
+from langchain_core.runnables import Runnable, RunnableConfig
 import os
 
 from langchain import hub
@@ -77,22 +77,32 @@ class AgiRunnable(BaseChatModel):
     
     def create_agent(self, urls: List[str], opml: str = None) -> RunnableWithMessageHistory:
         # Retriever tool
-        loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, opml=opml, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-        docs = loader.load()
-        filtered_docs = filter_complex_metadata(docs)
-        documents = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=200
-        ).split_documents(filtered_docs)
+        # loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, opml=opml, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        # docs = loader.load()
+        # filtered_docs = filter_complex_metadata(docs)
+        # documents = RecursiveCharacterTextSplitter(
+        #     chunk_size=1000, chunk_overlap=200
+        # ).split_documents(filtered_docs)
         
-        vector = Chroma.from_documents(documents, OpenAIEmbeddings())
-        retriever = vector.as_retriever()
+        # vector = Chroma.from_documents(documents, OpenAIEmbeddings())
+        # retriever = vector.as_retriever()
 
-        retriever_tool = create_retriever_tool(
-            retriever,
-            "rss_retriever",
-            "Scour different rss feeds for information",
+        # retriever_tool = create_retriever_tool(
+        #     retriever,
+        #     "rss_retriever",
+        #     "Scour different rss feeds for information",
+        # )
+        
+        agent_with_chat_history = RunnableWithMessageHistory(
+            self.BabyAgiRunnable,
+            get_session_history,
+            input_messages_key="objective",
+            history_messages_key="chat_history",
         )
+        return agent_with_chat_history
 
+    @chain
+    def BabyAgiRunnable(objective):
         # Planning tool
         planning_prompt = PromptTemplate.from_template("You are a planner who is an expert at coming up with a todo list for a given objective. Come up with a todo list for this objective: {objective}")
         planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-4", temperature=0), prompt=planning_prompt)
@@ -106,7 +116,7 @@ class AgiRunnable(BaseChatModel):
         # Tool Collection
         tools = [
             TavilySearchResults(max_results=1),
-            retriever_tool,
+            # retriever_tool,
             planning_tool
         ]
 
@@ -132,31 +142,13 @@ class AgiRunnable(BaseChatModel):
         verbose = False
         # If None, will keep on going forever
         max_iterations: Optional[int] = 3
-        self.agi_agent = BabyAGI.from_llm(
+        agi_agent = BabyAGI.from_llm(
             llm=llm,
             vectorstore=agi_memory_vstore,
             task_execution_chain=agent_executor,
             verbose=verbose,
             max_iterations=max_iterations,
         )
-
-        # runnable = RunnableParallel(
-        #     passed=RunnablePassthrough(),
-        #     extra=RunnablePassthrough.assign(agi_agent=agi_agent)
-        # )
-        
-        agent_with_chat_history = RunnableWithMessageHistory(
-            self.BabyAgiRunnable,
-            get_session_history,
-            input_messages_key="objective",
-            history_messages_key="chat_history",
-        )
-        return agent_with_chat_history
-
-    @chain
-    def BabyAgiRunnable(fields):
-        objective = fields["objective"]
-        agi_agent = fields["agi_agent"]
         
         agi_agent.invoke(objective)
         retriever = agi_agent.vectorstore.as_retriever()
@@ -165,34 +157,33 @@ class AgiRunnable(BaseChatModel):
             print('Final Docs:', doc.page_content)
         return result[-1].page_content
 
-    def new_rss_system(self, messages: List[BaseMessage], is_opml: bool = False) -> RunnableWithMessageHistory:
-        if is_opml:
-            rss_feeds = messages[0].content
-            agent = self.create_agent(None, opml=messages[0].content)
-        else:
-            rss_feeds = messages[0].content.splitlines()[1:]
-            agent = self.create_agent(rss_feeds)
-        return agent
+    # def new_rss_system(self, messages: List[BaseMessage], is_opml: bool = False) -> RunnableWithMessageHistory:
+    #     if is_opml:
+    #         rss_feeds = messages[0].content
+    #         agent = self.create_agent(None, opml=messages[0].content)
+    #     else:
+    #         rss_feeds = messages[0].content.splitlines()[1:]
+    #         agent = self.create_agent(rss_feeds)
+    #     return agent
 
     def process_objective(self, messages: List[BaseMessage], config: Optional[RunnableConfig] = {"configurable":{"session_id":"<foo>"}}) -> str:
         agent = self.agent_with_chat_history
         len_req = 1
         if isinstance(messages[0], SystemMessage):
-            if "rss" in messages[0].content.splitlines()[0].lower():
-                agent = self.new_rss_system(messages)
-            elif "<?xml version='1.0' encoding='UTF-8' ?>" in messages[0].content.splitlines()[0] \
-                    and "<opml version=" in messages[0].content.splitlines()[1]:
-                agent = self.new_rss_system(messages, is_opml=True)
+            # if "rss" in messages[0].content.splitlines()[0].lower():
+            #     agent = self.new_rss_system(messages)
+            # elif "<?xml version='1.0' encoding='UTF-8' ?>" in messages[0].content.splitlines()[0] \
+            #         and "<opml version=" in messages[0].content.splitlines()[1]:
+            #     agent = self.new_rss_system(messages, is_opml=True)
+            # agent = self.create_agent(None)
+            agent = self.create_agent(None)
             len_req = 2
         if len(messages) > len_req:
             history = get_session_history(config["configurable"]["session_id"])
             history.add_messages(messages[:-1] if len_req == 1 else messages[1:-1])
             print("History: ", history.messages)
         output = agent.invoke(
-            {
-                "objective": {"objective": messages[-1].content},
-                "agi_agent": self.agi_agent
-            },
+            {"objective": messages[-1].content},
             config=config
         )
         # return output["output"]
