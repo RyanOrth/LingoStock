@@ -29,6 +29,7 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from app.CachingRSSFeedLoader import CachingRSSFeedLoader
 from langchain_core.outputs import ChatResult, ChatGeneration
 from langchain_core.callbacks import CallbackManagerForLLMRun
+from app.Tools import Toolkit
 
 store = {}
 
@@ -54,7 +55,8 @@ class AgiRunnable(BaseChatModel):
         with open("./app/rss_urls.txt") as f:
             urls = f.readlines()
         
-        self.agent_with_chat_history= self.create_agent(urls)
+        toolkit = Toolkit()
+        self.agent_with_chat_history= self.create_agent(toolkit, urls)
 
 
     @property
@@ -75,7 +77,7 @@ class AgiRunnable(BaseChatModel):
             }
         }
     
-    def create_agent(self, urls: List[str], opml: str = None) -> RunnableWithMessageHistory:
+    def create_agent(self, toolkit: Toolkit, urls: List[str], opml: str = None) -> RunnableWithMessageHistory:
         # Retriever tool
         loader = CachingRSSFeedLoader(cache_dir="./app/.cache", urls=urls, opml=opml, show_progress_bar=True, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         docs = loader.load()
@@ -93,22 +95,8 @@ class AgiRunnable(BaseChatModel):
             "Scour different rss feeds for information",
         )
 
-        # Planning tool
-        planning_prompt = PromptTemplate.from_template("You are a planner who is an expert at coming up with a todo list for a given objective. Come up with a todo list for this objective: {objective}")
-        planning_chain = LLMChain(llm=ChatOpenAI(model="gpt-4", temperature=0), prompt=planning_prompt)
-
-        planning_tool = Tool(
-            name="Planning",
-            func=planning_chain.run,
-            description="useful for when you need to come up with todo lists. Input: an objective to create a todo list for. Output: a todo list for that objective. Please be very clear what the objective is!",
-        )
-        
-        # Tool Collection
-        tools = [
-            TavilySearchResults(max_results=1),
-            retriever_tool,
-            planning_tool
-        ]
+        tools = toolkit.get_tools()
+        tools.append(retriever_tool)
 
         prefix = """You are an AI who performs one task based on the following objective: {objective}. Take into account these previously completed tasks: {context}."""
         suffix = """Question: {task}
